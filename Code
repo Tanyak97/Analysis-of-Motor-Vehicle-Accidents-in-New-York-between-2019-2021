@@ -1,0 +1,103 @@
+from google.colab import drive
+drive.mount('/content/drive')
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+#getting path of the csv
+path = "/content/drive/MyDrive/Motor_Vehicle_Collisions_.csv" 
+
+#Read the csv files
+df = pd.read_csv("/content/drive/MyDrive/Motor_Vehicle_Collisions_.csv")
+
+df['CRASH_DATE'] = pd.to_datetime(df['CRASH_DATE'])
+                            
+start_date = '2019-06-01'
+end_date   = '2021-05-31'
+
+mvc_data = df.query('CRASH_DATE >= @start_date and CRASH_DATE <= @end_date')
+mvc_data.to_csv("/content/drive/MyDrive/MVC.csv")
+
+#getting path of the year wise csv
+path = "/content/drive/MyDrive/MVC.csv" 
+
+#Read the year wise csv files
+
+df = pd.read_csv("/content/drive/MyDrive/MVC.csv")
+
+#Extracting only month and year
+df["CRASH_DATE"] = pd.to_datetime (df["CRASH_DATE"])
+
+df['YEAR'], df['MONTH'] = df['CRASH_DATE'].dt.year, df['CRASH_DATE'].dt.month
+#Dropping columns that are not needed
+
+df.drop(["UNIQUE_ID","COLLISION_ID","CRASH_TIME","VEHICLE_YEAR","CRASH_DATE","STATE_REGISTRATION","TRAVEL_DIRECTION","VEHICLE_OCCUPANTS","VEHICLE_MODEL","VEHICLE_ID","DRIVER_SEX","VEHICLE_DAMAGE_1","VEHICLE_DAMAGE_2","VEHICLE_DAMAGE_3","DRIVER_LICENSE_JURISDICTION","PRE_CRASH","POINT_OF_IMPACT",
+         "PUBLIC_PROPERTY_DAMAGE","PUBLIC_PROPERTY_DAMAGE_TYPE",
+         "CONTRIBUTING_FACTOR_1","DRIVER_LICENSE_STATUS","CONTRIBUTING_FACTOR_2"], axis=1, inplace=True)
+#Dropping all rows with NAN Values
+
+df.dropna(how='all') 
+
+#Dropping NAN Values in the specific columns
+
+d=df.dropna(subset=["VEHICLE_TYPE","VEHICLE_MAKE"])
+#Filtering out the desired vehicles
+
+df=df[df["VEHICLE_MAKE"].str.contains('(NISS|SUBA|GMC|HINO)', na=False)]
+
+import re  
+# Function to clean the names
+def Clean_names(vehicle_name):
+#Regex to search for hyphen(-) in the name followed by any #characters repeated any number of times
+    if re.search('\-.*', vehicle_name):  
+        # Extract the position of beginning of pattern
+        pos = re.search('\-.*', vehicle_name).start()  
+        # return the cleaned name
+        return vehicle_name[:pos]  
+    else:
+        # if clean up needed return the same name
+        return vehicle_name
+          
+# Update the vehicle_make columns
+df['VEHICLE_MAKE'] = df['VEHICLE_MAKE'].apply(Clean_names)
+#Replacing all similar vehicle names to Niss for Niss
+df['VEHICLE_MAKE'] = df['VEHICLE_MAKE'].replace(["NISS ","NISSA "," NISS","NISSIAN", "NISSAN DIESEL MOTOR CO", "NISSAN","NISSA","NISSAN DIESEL MOTOR COMPANY","NISSAN DIESEL MOTOR VAN"], ["NISS","NISS","NISS","NISS", "NISS", "NISS","NISS","NISS","NISS"])
+#Replacing all similar vehicle names to Suba for suba
+df['VEHICLE_MAKE'] = df['VEHICLE_MAKE'].replace(["SUBAR","SUBA "], ["SUBA","SUBA"])
+#Vehicle count for vehicle type 
+
+df['VEHICLE_TYPE'].value_counts()
+#Using groupby to group by each year-2019
+df2019=grouped = df.groupby('YEAR')
+grouped.get_group(2019)
+#Using groupby to group by each year-2020
+
+df2020=grouped = df.groupby('YEAR')
+grouped.get_group(2020)
+#Using groupby to group by each year-2021
+
+df2021=grouped = df.groupby('YEAR')
+grouped.get_group(2021)
+#Plotting bar graph for no. of accidnets from 2019 to 2021 per each vehicle make
+
+X = ["Niss","Hino","Suba","GMC"]
+no_of_vehicles_in_2019 = [23179,1308,3313,2900]
+no_of_vehicles_in_2020 = [20347,1012,2877,2298]
+no_of_vehicles_in_2021 = [7176,327,1027,768]
+  
+X_axis = np.arange(len(X))
+  
+plt.bar(X_axis - 0.4,  no_of_vehicles_in_2019, 0.2, 
+	label = '2019')
+plt.bar(X_axis - 0.2,  no_of_vehicles_in_2020, 0.2, 
+	label = '2020')
+plt.bar(X_axis + 0.4,  no_of_vehicles_in_2021, 0.2, 
+	label = '2021')
+  
+plt.xticks(X_axis, X)
+plt.xlabel("Vehicle Makes")
+plt.ylabel("Number of Accidents")
+plt.title("Number of Accidents Per Vehicle Make")
+plt.legend()
+plt.show()
